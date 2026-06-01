@@ -1,0 +1,87 @@
+.theme-minimal .preview-document {
+  --text: #202124;
+  --muted: #717985;
+  --line: #dfe3e8;
+  --bubble: #f6f7f9;
+  --bubble-accent: #e9eef8;
+  --bubble-shadow: none;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.theme-chatlog .preview-document {
+  --text: #202124;
+  --muted: #68707b;
+  --line: #e5e8ee;
+  --bubble: transparent;
+  --bubble-accent: transparent;
+  --bubble-shadow: none;
+  background: #ffffff;
+  color: var(--text);
+}
+
+.theme-chatlog .preview-document h1 {
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.theme-chatlog .message-block {
+  margin: 0;
+  padding: 9px 8px;
+  border-radius: 6px;
+}
+
+.theme-chatlog .message-block:hover {
+  background: #f5f7fa;
+}
+
+.theme-chatlog .message-block.right {
+  flex-direction: row;
+  text-align: left;
+}
+
+.theme-chatlog .message-meta,
+.theme-chatlog .right .message-meta {
+  justify-content: flex-start;
+  margin-bottom: 2px;
+}
+
+.theme-chatlog .message-meta strong {
+  color: var(--speaker-color);
+}
+
+.theme-chatlog .bubble-stack {
+  gap: 1px;
+}
+
+.theme-chatlog .bubble-stack p,
+.theme-chatlog .right .bubble-stack p {
+  padding: 1px 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  line-height: 1.5;
+}
+
+.theme-chatlog time {
+  margin-top: 2px;
+}
+
+.dark-mode.preview-pane {
+  background: #0f1319;
+}
+
+.dark-mode .preview-document {
+  --text: #eef1f5;
+  --muted: #a9b0bb;
+  --line: #3b414d;
+  --bubble: #262d37;
+  --bubble-accent: #243857;
+  --bubble-shadow: none;
+  background: #161b22;
+  color: var(--text);
+}
+
+.dark-mode.theme-chatlog .message-block:hover {
+  background: #202732;
+}

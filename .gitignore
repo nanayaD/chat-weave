@@ -1,0 +1,9 @@
+node_modules/
+dist/
+artifacts/
+.vite/
+\# 썰 백업기 MVP 구현 지시문.txt
+.env
+.env.*
+npm-debug.log*
+*.tsbuildinfo
