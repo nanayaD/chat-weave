@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node -e \"const fs=require('fs');const d='dist/assets';let h=fs.readFileSync('dist/index.html','utf8');for(const f of fs.readdirSync(d)){const c=fs.readFileSync(d+'/'+f,'utf8');const e=f.replace(/\\./g,'\\\\.');if(f.endsWith('.js'))h=h.replace(new RegExp('<script[^>]*'+e+'[^>]*></script>'),()=>'<script type=module>'+c.split('</script>').join('<\\\\/script>')+'</script>');else if(f.endsWith('.css'))h=h.replace(new RegExp('<link[^>]*'+e+'[^>]*>'),()=>'<style>'+c+'</style>');}fs.writeFileSync('dist/index.html',h);fs.rmSync(d,{recursive:true,force:true});\"",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,7 +17,6 @@
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "vite-plugin-singlefile": "^2.3.3"
+    "@types/react-dom": "^19.1.6"
   }
 }
