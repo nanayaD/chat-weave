@@ -5,7 +5,7 @@ import { PreviewPane } from "./components/PreviewPane";
 import { RawTextInput } from "./components/RawTextInput";
 import { createSpeaker, getDefaultRenderOptions } from "./data/defaults";
 import { parseRawText } from "./parsers";
-import { buildTistoryHtml, buildViewerHtml, downloadTextFile } from "./render/exportHtml";
+import { buildTistoryHtml, buildViewerHtml, downloadTextFile, getExportSizeInfo } from "./render/exportHtml";
 import type { Message, Platform, Project, RenderOptions, Speaker, UnmatchedBlock } from "./types/project";
 
 const nowIso = () => new Date().toISOString();
@@ -258,9 +258,10 @@ function App() {
 
   const copyTistoryHtml = async () => {
     const html = buildTistoryHtml(project);
+    const size = getExportSizeInfo(html);
     try {
       await navigator.clipboard.writeText(html);
-      window.alert("티스토리용 HTML 코드를 복사했습니다.");
+      window.alert(`티스토리용 HTML 코드를 복사했습니다.\n코드 크기: ${size.text} · ${size.message}`);
     } catch {
       setCodeModalText(html);
     }
@@ -346,6 +347,15 @@ function App() {
               <div>
                 <h2 id="code-modal-title">티스토리용 HTML 코드</h2>
                 <p>아래 코드를 전체 선택해서 티스토리 HTML 모드에 붙여넣으세요.</p>
+                {(() => {
+                  const size = getExportSizeInfo(codeModalText);
+                  const color = size.level === "danger" ? "#d23f3f" : size.level === "warn" ? "#c87a12" : "#2f8a4c";
+                  return (
+                    <p className="code-size-note" style={{ color, margin: "4px 0 0", fontWeight: 600 }}>
+                      코드 크기: {size.text} · {size.message}
+                    </p>
+                  );
+                })()}
               </div>
               <button type="button" onClick={() => setCodeModalText("")}>닫기</button>
             </div>

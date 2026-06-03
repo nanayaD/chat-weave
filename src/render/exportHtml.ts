@@ -36,10 +36,12 @@ function renderBlock(block: DisplayBlock, speakers: Speaker[], options: RenderOp
   const side = classNameForSide(speakerIndex, speaker, options);
   const widthClass = `cw-width-${options.bubbleWidth}`;
   const fallbackAvatarText = options.anonymizeMode === "off" ? displaySpeaker.visibleName.trim().charAt(0) || "+" : displaySpeaker.anonymousInitial;
-  const avatar = options.showAvatar
-    ? displaySpeaker.visibleAvatarDataUrl
-      ? `<img class="cw-avatar-img" src="${escapeHtml(displaySpeaker.visibleAvatarDataUrl)}" alt="" />`
-      : `<span class="cw-avatar-letter">${escapeHtml(fallbackAvatarText)}</span>`
+  // 프로필 이미지는 블록마다 Data URL을 반복하지 않고 화자별 클래스(cw-spk-N)로 참조한다.
+  // 실제 이미지는 buildAvatarCss가 화자당 한 번만 정의한다.
+  const hasAvatarImg = options.showAvatar && Boolean(displaySpeaker.visibleAvatarDataUrl);
+  const avatarClass = hasAvatarImg ? ` cw-photo cw-spk-${speakerIndex}` : "";
+  const avatar = options.showAvatar && !hasAvatarImg
+    ? `<span class="cw-avatar-letter">${escapeHtml(fallbackAvatarText)}</span>`
     : "";
   const header = options.showName || options.showHandle
     ? `<div class="cw-meta">${options.showName ? `<strong>${escapeHtml(displaySpeaker.visibleName)}</strong>` : ""}${
@@ -54,7 +56,7 @@ function renderBlock(block: DisplayBlock, speakers: Speaker[], options: RenderOp
   const time = options.showTime ? block.messages.map((message) => message.timestampText).filter(Boolean).at(-1) : "";
 
   return `<article class="cw-block ${side} ${widthClass}" style="--cw-speaker:${speaker.color || "#5B7CFA"}">
-    <div class="cw-avatar">${avatar}</div>
+    <div class="cw-avatar${avatarClass}">${avatar}</div>
     <div class="cw-content">${header}<div class="cw-bubbles">${bubbles}</div>${time ? `<time>${escapeHtml(time)}</time>` : ""}</div>
   </article>`;
 }
@@ -67,7 +69,7 @@ const buildArchiveCss = (scope = "") => `
     ${scope} .cw-stack { text-align: left; }
     ${scope} .cw-avatar { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; background: var(--cw-speaker); color: #fff; display: grid; place-items: center; overflow: hidden; font-weight: 800; }
     ${scope} .cw-avatar:empty { display: none; }
-    ${scope} .cw-avatar-img { width: 100%; height: 100%; object-fit: cover; }
+    ${scope} .cw-avatar.cw-photo:empty { display: grid; background-size: cover; background-position: center; }
     ${scope} .cw-content { max-width: 72%; }
     ${scope} .cw-width-narrow .cw-content { max-width: 58%; }
     ${scope} .cw-width-normal .cw-content { max-width: 72%; }
@@ -93,6 +95,21 @@ const buildArchiveCss = (scope = "") => `
     ${scope}.cw-dark.cw-theme-chatlog .cw-bubbles p, ${scope}.cw-dark.cw-theme-chatlog .cw-right .cw-bubbles p { background: transparent; }
 `;
 
+// 화자별 프로필 이미지를 Data URL로 한 번씩만 정의한다.
+// 메시지 수와 무관하게 이미지가 화자 수(최대 4회)만 삽입되도록 해 용량 폭발을 막는다.
+const buildAvatarCss = (project: Project, scope = "") => {
+  if (!project.renderOptions.showAvatar) return "";
+  const speakerMap = getSpeakerMap(project.speakers, project.renderOptions);
+  return project.speakers
+    .map((speaker, index) => {
+      const dataUrl = speakerMap.get(speaker.id)?.visibleAvatarDataUrl;
+      if (!dataUrl) return "";
+      return `${scope} .cw-spk-${index} { background-image: url("${dataUrl}"); }`;
+    })
+    .filter(Boolean)
+    .join("\n");
+};
+
 const renderArchiveBody = (project: Project) => {
   const blocks = buildDisplayBlocks(project.messages, project.renderOptions);
   const body = blocks.map((block) => renderBlock(block, project.speakers, project.renderOptions)).join("\n");
@@ -115,6 +132,7 @@ export function buildViewerHtml(project: Project) {
     :root { color-scheme: light dark; font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     body { margin: 0; background: #f5f2ec; color: #202124; }
 ${buildArchiveCss("")}
+${buildAvatarCss(project, "")}
     script[type="application/json"] { display: none; }
   </style>
 </head>
@@ -128,10 +146,37 @@ ${buildArchiveCss("")}
 export function buildTistoryHtml(project: Project) {
   return `<style>
 ${buildArchiveCss(".cw-tistory-archive ")}
+${buildAvatarCss(project, ".cw-tistory-archive ")}
 </style>
 <div class="cw-tistory-archive">
   ${renderArchiveBody(project)}
 </div>`;
+}
+
+export type ExportSizeLevel = "safe" | "warn" | "danger";
+
+export type ExportSizeInfo = {
+  bytes: number;
+  text: string;
+  level: ExportSizeLevel;
+  message: string;
+};
+
+// 관측상 약 150KB 부근에서 티스토리 저장이 실패하므로 그 아래로 안전/주의/위험 구간을 나눈다.
+const SIZE_WARN = 100 * 1024;
+const SIZE_DANGER = 150 * 1024;
+
+export function getExportSizeInfo(html: string): ExportSizeInfo {
+  const bytes = new Blob([html]).size;
+  const kb = bytes / 1024;
+  const text = kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${Math.round(kb)} KB`;
+  if (bytes >= SIZE_DANGER) {
+    return { bytes, text, level: "danger", message: "티스토리 저장이 실패할 수 있는 크기입니다. 대화를 나눠서 내보내세요." };
+  }
+  if (bytes >= SIZE_WARN) {
+    return { bytes, text, level: "warn", message: "용량이 큽니다. 저장이 안 되면 대화를 나눠서 내보내세요." };
+  }
+  return { bytes, text, level: "safe", message: "안전한 크기입니다." };
 }
 
 export function downloadTextFile(filename: string, text: string, type = "text/plain;charset=utf-8") {

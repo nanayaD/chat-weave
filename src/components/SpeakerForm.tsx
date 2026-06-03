@@ -1,4 +1,5 @@
 import type { Speaker } from "../types/project";
+import { fileToAvatarDataUrl } from "../render/imageResize";
 
 type SpeakerFormProps = {
   speakers: Speaker[];
@@ -21,14 +22,10 @@ export function SpeakerForm({ speakers, isStackTheme, showHandle, invalidSpeaker
     onChange(speakers.map((speaker) => (speaker.id === id ? { ...speaker, ...patch } : speaker)));
   };
 
-  const handleAvatar = (speaker: Speaker, file?: File) => {
+  const handleAvatar = async (speaker: Speaker, file?: File) => {
     if (!file) return;
-    if (file.size > 1024 * 1024 && !window.confirm("이미지가 1MB보다 큽니다. HTML/작업 파일 용량이 커질 수 있어요. 그래도 사용할까요?")) {
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => updateSpeaker(speaker.id, { avatarDataUrl: String(reader.result || "") });
-    reader.readAsDataURL(file);
+    const avatarDataUrl = await fileToAvatarDataUrl(file);
+    updateSpeaker(speaker.id, { avatarDataUrl });
   };
 
   return (
